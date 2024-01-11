@@ -18,7 +18,6 @@ const App = () => {
           <nav className={style.nav}>
             <Link to="sign-in">Вход</Link>
             <Link to="sign-up">Регистрация</Link>
-            <Link to="demo">Демо</Link>
           </nav>
         )}
         <Routes>
@@ -30,7 +29,6 @@ const App = () => {
               <Route path="sign-up" element={<SignUp />} />
             </>
           )}
-
           <Route
             path="*"
             element={<Navigate to={isUserLogged ? "demo" : "sign-in"} />}

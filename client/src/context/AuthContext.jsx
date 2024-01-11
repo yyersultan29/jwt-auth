@@ -1,10 +1,10 @@
 import { createContext, useState, useEffect } from "react";
 import axios from "axios";
 import { Circle } from "react-preloaders";
+import inMemoryJWT from "../service/inMemoryJWT";
 import config from "../config";
 import style from "../app.module.scss";
 import showErrorMessage from "../utils/showErrorMessage";
-import inMemoryJWTService from "../service/inMemoryJWT";
 
 export const AuthClient = axios.create({
   baseURL: `${config.API_URL}/auth`,
@@ -13,14 +13,11 @@ export const AuthClient = axios.create({
 
 export const ResourceClient = axios.create({
   baseURL: `${config.API_URL}/resource`,
-  withCredentials: true,
 });
 
 ResourceClient.interceptors.request.use(
   (config) => {
-    const accessToken = inMemoryJWTService.getToken();
-
-    console.log(accessToken);
+    const accessToken = inMemoryJWT.getToken();
 
     if (accessToken) {
       config.headers["Authorization"] = `Bearer ${accessToken}`;
@@ -28,21 +25,21 @@ ResourceClient.interceptors.request.use(
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    Promise.reject(error);
+  }
 );
 
 export const AuthContext = createContext({});
 
 const AuthProvider = ({ children }) => {
-  const [data, setData] = useState();
-
   const [isAppReady, setIsAppReady] = useState(false);
   const [isUserLogged, setIsUserLogged] = useState(false);
+  const [data, setData] = useState();
 
   const handleFetchProtected = () => {
-    ResourceClient.get("protected")
+    ResourceClient.get("/protected")
       .then((res) => {
-        console.log(res);
         setData(res.data);
       })
       .catch(showErrorMessage);
@@ -50,40 +47,43 @@ const AuthProvider = ({ children }) => {
 
   const handleLogOut = () => {
     AuthClient.post("/logout")
-      .then((res) => {
-        inMemoryJWTService.deleteToken();
+      .then(() => {
         setIsUserLogged(false);
+        inMemoryJWT.deleteToken();
+
+        setData();
       })
       .catch(showErrorMessage);
   };
 
   const handleSignUp = (data) => {
-    AuthClient.post("sign-up", data)
+    AuthClient.post("/sign-up", data)
       .then((res) => {
         const { accessToken, accessTokenExpiration } = res.data;
-        inMemoryJWTService.setToken(accessToken, accessTokenExpiration);
+
+        inMemoryJWT.setToken(accessToken, accessTokenExpiration);
         setIsUserLogged(true);
       })
       .catch(showErrorMessage);
   };
 
   const handleSignIn = (data) => {
-    AuthClient.post("sign-in", data)
+    AuthClient.post("/sign-in", data)
       .then((res) => {
         const { accessToken, accessTokenExpiration } = res.data;
 
-        inMemoryJWTService.setToken(accessToken, accessTokenExpiration);
+        inMemoryJWT.setToken(accessToken, accessTokenExpiration);
         setIsUserLogged(true);
       })
       .catch(showErrorMessage);
   };
 
-  // WHEN WEB SITE OPENS WE WILL REFRESH TOKEN
   useEffect(() => {
     AuthClient.post("/refresh")
       .then((res) => {
         const { accessToken, accessTokenExpiration } = res.data;
-        inMemoryJWTService.setToken(accessToken, accessTokenExpiration);
+        inMemoryJWT.setToken(accessToken, accessTokenExpiration);
+
         setIsAppReady(true);
         setIsUserLogged(true);
       })
@@ -91,6 +91,21 @@ const AuthProvider = ({ children }) => {
         setIsAppReady(true);
         setIsUserLogged(false);
       });
+  }, []);
+
+  useEffect(() => {
+    const handlePersistedLogOut = (event) => {
+      if (event.key === config.LOGOUT_STORAGE_KEY) {
+        inMemoryJWT.deleteToken();
+        setIsUserLogged(false);
+      }
+    };
+
+    window.addEventListener("storage", handlePersistedLogOut);
+
+    return () => {
+      window.removeEventListener("storage", handlePersistedLogOut);
+    };
   }, []);
 
   return (
@@ -101,8 +116,8 @@ const AuthProvider = ({ children }) => {
         handleSignUp,
         handleSignIn,
         handleLogOut,
-        isUserLogged,
         isAppReady,
+        isUserLogged,
       }}
     >
       {isAppReady ? (
@@ -112,7 +127,6 @@ const AuthProvider = ({ children }) => {
           <Circle />
         </div>
       )}
-      {children}
     </AuthContext.Provider>
   );
 };

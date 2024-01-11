@@ -92,26 +92,31 @@ class AuthService {
     const refreshSession = await RefreshSessionsRepository.getRefreshSession(
       currentRefreshToken
     );
+
     if (!refreshSession) {
       throw new Unauthorized();
     }
+
     if (refreshSession.finger_print !== fingerprint.hash) {
+      console.log("Попытка несанкционированного обновления токенов");
       throw new Forbidden();
     }
+
     await RefreshSessionsRepository.deleteRefreshSession(currentRefreshToken);
 
     let payload;
-
     try {
       payload = await TokenService.verifyRefreshToken(currentRefreshToken);
-    } catch (e) {
-      throw new Forbidden(e);
+    } catch (error) {
+      throw new Forbidden(error);
     }
+
     const {
       id,
       role,
       name: userName,
     } = await UserRepository.getUserData(payload.userName);
+
     const actualPayload = { id, userName, role };
 
     const accessToken = await TokenService.generateAccessToken(actualPayload);
