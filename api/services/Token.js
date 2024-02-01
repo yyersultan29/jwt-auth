@@ -7,7 +7,7 @@ dotenv.config();
 class TokenService {
   static async generateAccessToken(payload) {
     return await jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
-      expiresIn: "30m",
+      expiresIn: "2m",
     });
   }
 
@@ -28,7 +28,7 @@ class TokenService {
 
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, user) => {
       if (error) {
-        return next(new Forbidden(error));
+        return next(new Unauthorized(error));
       }
       req.user = user;
       next();

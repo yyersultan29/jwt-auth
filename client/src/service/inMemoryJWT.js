@@ -1,23 +1,23 @@
 import config from "../config";
-import { AuthClient } from "../context/AuthContext";
+// import { AuthClient } from "../context/AuthContext";
 
 const inMemoryJWTService = () => {
   let inMemoryJWT = null;
   let refreshTimeoutId = null;
 
-  const refreshToken = (expiration) => {
-    // чтобы рефреш токен обновился до своего срока раньше 10секунд
-    const timeoutTrigger = expiration - 10000;
+  // const refreshToken = (expiration) => {
+  //   // чтобы рефреш токен обновился до своего срока раньше 10секунд
+  //   const timeoutTrigger = expiration - 10000;
 
-    refreshTimeoutId = setTimeout(() => {
-      AuthClient.post("/refresh")
-        .then((res) => {
-          const { accessToken, accessTokenExpiration } = res.data;
-          setToken(accessToken, accessTokenExpiration);
-        })
-        .catch(console.error);
-    }, timeoutTrigger);
-  };
+  //   refreshTimeoutId = setTimeout(() => {
+  //     AuthClient.post("/refresh")
+  //       .then((res) => {
+  //         const { accessToken, accessTokenExpiration } = res.data;
+  //         setToken(accessToken, accessTokenExpiration);
+  //       })
+  //       .catch(console.error);
+  //   }, timeoutTrigger);
+  // };
 
   const abortRefreshToken = () => {
     if (refreshTimeoutId) {
@@ -29,7 +29,7 @@ const inMemoryJWTService = () => {
 
   const setToken = (token, tokenExpiration) => {
     inMemoryJWT = token;
-    refreshToken(tokenExpiration);
+    // refreshToken(tokenExpiration);
   };
 
   const deleteToken = () => {

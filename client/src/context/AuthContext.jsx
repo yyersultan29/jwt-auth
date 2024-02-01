@@ -5,30 +5,7 @@ import inMemoryJWT from "../service/inMemoryJWT";
 import config from "../config";
 import style from "../app.module.scss";
 import showErrorMessage from "../utils/showErrorMessage";
-
-export const AuthClient = axios.create({
-  baseURL: `${config.API_URL}/auth`,
-  withCredentials: true,
-});
-
-export const ResourceClient = axios.create({
-  baseURL: `${config.API_URL}/resource`,
-});
-
-ResourceClient.interceptors.request.use(
-  (config) => {
-    const accessToken = inMemoryJWT.getToken();
-
-    if (accessToken) {
-      config.headers["Authorization"] = `Bearer ${accessToken}`;
-    }
-
-    return config;
-  },
-  (error) => {
-    Promise.reject(error);
-  }
-);
+import { instance } from "../http";
 
 export const AuthContext = createContext({});
 
@@ -38,7 +15,8 @@ const AuthProvider = ({ children }) => {
   const [data, setData] = useState();
 
   const handleFetchProtected = () => {
-    ResourceClient.get("/protected")
+    instance
+      .get("/resource/protected")
       .then((res) => {
         setData(res.data);
       })
@@ -46,7 +24,8 @@ const AuthProvider = ({ children }) => {
   };
 
   const handleLogOut = () => {
-    AuthClient.post("/logout")
+    instance
+      .post("/auth/logout")
       .then(() => {
         setIsUserLogged(false);
         inMemoryJWT.deleteToken();
@@ -57,7 +36,8 @@ const AuthProvider = ({ children }) => {
   };
 
   const handleSignUp = (data) => {
-    AuthClient.post("/sign-up", data)
+    instance
+      .post("/auth/sign-up", data)
       .then((res) => {
         const { accessToken, accessTokenExpiration } = res.data;
 
@@ -68,8 +48,10 @@ const AuthProvider = ({ children }) => {
   };
 
   const handleSignIn = (data) => {
-    AuthClient.post("/sign-in", data)
+    instance
+      .post("/auth/sign-in", data)
       .then((res) => {
+        console.log(res.data);
         const { accessToken, accessTokenExpiration } = res.data;
 
         inMemoryJWT.setToken(accessToken, accessTokenExpiration);
@@ -79,7 +61,8 @@ const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    AuthClient.post("/refresh")
+    instance
+      .post("/auth/refresh")
       .then((res) => {
         const { accessToken, accessTokenExpiration } = res.data;
         inMemoryJWT.setToken(accessToken, accessTokenExpiration);
